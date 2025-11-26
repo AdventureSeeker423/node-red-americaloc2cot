@@ -5,7 +5,7 @@
 ## Pre-Requisites / Setup
 
 1. Purchase and activate tracking devices from [https://us.americaloc.com/](https://us.americaloc.com/)
-2. Contact Americaloc's customer service and request an API Key and Documentation for your account.
+2. Contact Americaloc's customer service and request an API Key with the Documentation for your account.
 
 ## Deployment
 
