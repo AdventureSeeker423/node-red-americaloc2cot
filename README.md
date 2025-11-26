@@ -2,7 +2,7 @@
 
 <p align='center'>A node red flow to query Americaloc's API service in order to generate COT messages to be sent to a TAK server.</p>
 
-<p align="center"><img src="https://raw.githubusercontent.com/AdventureSeeker423/node-red-americaloc2cot/main/americaloc_flow_example.png" alt="Flow Example"></p>
+<p align="center"><img src="https://raw.githubusercontent.com/AdventureSeeker423/node-red-americaloc2cot/main/americaloc_flow_example.png" alt="NodeRed Flow Example"></p>
 
 
 ## Pre-Requisites / Setup
