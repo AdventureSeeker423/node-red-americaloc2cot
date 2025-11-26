@@ -1,0 +1,183 @@
+[
+    {
+        "id": "9a7ea5ccea732e2a",
+        "type": "tab",
+        "label": "Americaloc",
+        "disabled": false,
+        "info": "",
+        "env": []
+    },
+    {
+        "id": "9b4d858787ee80e8",
+        "type": "inject",
+        "z": "9a7ea5ccea732e2a",
+        "name": "Trigger",
+        "props": [
+            {
+                "p": "payload"
+            }
+        ],
+        "repeat": "15",
+        "crontab": "",
+        "once": true,
+        "onceDelay": 0.1,
+        "topic": "",
+        "payload": "",
+        "payloadType": "date",
+        "x": 160,
+        "y": 320,
+        "wires": [
+            [
+                "0420d3b7c702ff15"
+            ]
+        ]
+    },
+    {
+        "id": "bfc39bf0e2dc3f94",
+        "type": "debug",
+        "z": "9a7ea5ccea732e2a",
+        "name": "Show Americaloc JSON",
+        "active": false,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "payload",
+        "targetType": "msg",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 770,
+        "y": 260,
+        "wires": []
+    },
+    {
+        "id": "154f355b1655996e",
+        "type": "json",
+        "z": "9a7ea5ccea732e2a",
+        "name": "",
+        "property": "payload",
+        "action": "obj",
+        "pretty": true,
+        "x": 510,
+        "y": 320,
+        "wires": [
+            [
+                "bfc39bf0e2dc3f94",
+                "0b75d651af07fd53"
+            ]
+        ]
+    },
+    {
+        "id": "4c253716d8863a2d",
+        "type": "tak",
+        "z": "9a7ea5ccea732e2a",
+        "name": "TAK",
+        "x": 970,
+        "y": 320,
+        "wires": [
+            [
+                "34b6997227b2ca30"
+            ],
+            [],
+            []
+        ]
+    },
+    {
+        "id": "9d7416684f315619",
+        "type": "debug",
+        "z": "9a7ea5ccea732e2a",
+        "name": "debug 5",
+        "active": false,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "false",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 1000,
+        "y": 260,
+        "wires": []
+    },
+    {
+        "id": "34b6997227b2ca30",
+        "type": "tcp out",
+        "z": "9a7ea5ccea732e2a",
+        "name": "Americaloc",
+        "host": "yourtak.server.com",
+        "port": "8060",
+        "beserver": "client",
+        "base64": false,
+        "end": false,
+        "tls": "6def2e93b726de43",
+        "x": 1150,
+        "y": 320,
+        "wires": []
+    },
+    {
+        "id": "0b75d651af07fd53",
+        "type": "function",
+        "z": "9a7ea5ccea732e2a",
+        "name": "Loop Americaloc and Send",
+        "func": "const dt = Date.now();\nconst dtISOString = new Date(dt).toISOString();\nconst dtStaleISOString = new Date(dt + 60000).toISOString(); // +1 min\n\nfunction sanitize(text) {\n    return String(text ?? \"unknown\")\n        .replace(/\\s+/g, \"_\")\n        .replace(/[^\\w-]/g, \"\")\n        .substring(0, 32);\n}\n\n// Constants that do not change per device\nconst AGENCY_ICON = \"ad78aafb-83a6-4c07-b2b9-a897a8b6a38f/Markers/wht-stars.png\";\nconst DEFAULT_COLOR = \"-65536\";\n\nfor (const device of msg.payload) {\n\n    const vehicle = device.vehicleData ?? {};\n    const location = device.lastLocation ?? {};\n\n    // Skip devices without valid coordinates\n    if (!location.hasCoordinates || location.latitude == null || location.longitude == null) continue;\n\n    const lastUpdated =\n        location.readTimeMillisecondsUtc\n            ? new Date(location.readTimeMillisecondsUtc).toISOString()\n            : \"Unknown\";\n\n    // FIXED: precedence issue (your version always returned the concatenated string)\n    const deviceName = device.deviceInfo?.deviceId\n        ? `Americaloc ${device.deviceInfo.deviceId}`\n        : \"Unknown Device\";\n\n    const newMsg = {\n        payload: {\n            event: {\n                _attributes: {\n                    version: \"2.0\",\n                    uid: \"device-\" + sanitize(deviceName),\n                    type: \"a-f-G-U-C\",\n                    how: \"m-g\",\n                    time: dtISOString,\n                    start: new Date(location.eventTimeMillisecondsUtc).toISOString(),\n                    stale: dtStaleISOString\n                },\n                point: {\n                    _attributes: {\n                        lat: location.latitude,\n                        lon: location.longitude,\n                        hae: location.altitude ?? \"9999999.0\",\n                        ce: \"9999999.0\",\n                        le: \"9999999.0\"\n                    }\n                },\n                detail: {\n                    link: {\n                        _attributes: {\n                            url: `https://maps.google.com/?q=${location.latitude},${location.longitude}`,\n                            remarks: \"Tracker Location\",\n                            relation: \"r-u\",\n                            mime: \"text/html\",\n                            version: \"1.0\"\n                        }\n                    },\n                    contact: {\n                        _attributes: {\n                            callsign: deviceName\n                        }\n                    },\n                    usericon: {\n                        _attributes: {\n                            iconsetpath: AGENCY_ICON\n                        }\n                    },\n                    color: {\n                        _attributes: {\n                            argb: DEFAULT_COLOR\n                        }\n                    },\n                    remarks:\n                        `Latitude: ${location.latitude}\\n` +\n                        `Longitude: ${location.longitude}\\n` +\n                        `Accuracy: ${location.accuracy ?? 'Unknown'}\\n` +\n                        `Altitude: ${location.altitude ?? 'Unknown'}\\n` +\n                        `Battery: ${location.batteryPercentage ?? 'Unknown'}\\n` +\n                        `Speed: ${location.speed ?? 'Unknown'}\\n` +\n                        `Bearing: ${location.bearing ?? 'Unknown'}\\n` +\n                        `Event Type: ${location.eventType ?? 'Unknown'}\\n` +\n                        `Device ID: ${device.deviceID ?? 'Unknown'}\\n` +\n                        `IMEI: ${device.deviceInfo?.imei ?? 'Unknown'}\\n` +\n                        `Last Updated: ${lastUpdated}\\n`\n                }\n            }\n        }\n    };\n\n    node.send(newMsg);\n}\n\nreturn null;\n",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 740,
+        "y": 320,
+        "wires": [
+            [
+                "4c253716d8863a2d",
+                "9d7416684f315619"
+            ]
+        ]
+    },
+    {
+        "id": "0420d3b7c702ff15",
+        "type": "function",
+        "z": "9a7ea5ccea732e2a",
+        "name": "Fetch Americaloc",
+        "func": "// ---- CONFIGURATION ----\nconst API_KEY = \"xxx\"; //YOUR API KEY HERE\nconst BASE_URL = \"xxx\"; //YOUR API URL AND PORT HERE\n\n// ---- FETCH OPTIONS ----\nconst options = {\n    method: \"GET\",\n    headers: {\n        \"Authorization\": API_KEY,\n        \"Accept\": \"application/json\"\n    }\n};\n\nasync function fetchJson(url) {\n    const res = await fetch(url, options);\n\n    if (!res.ok) {\n        throw new Error(`HTTP ${res.status} - ${url}`);\n    }\n\n    return res.json();\n}\n\nasync function getDevices() {\n    return fetchJson(`${BASE_URL}/device/all/active`);\n}\n\nasync function getLastLocation(deviceID) {\n    return fetchJson(`${BASE_URL}/location/${deviceID}`);\n}\n\nasync function main() {\n    try {\n        // 1. Get all active devices\n        const deviceList = await getDevices();\n\n        if (!Array.isArray(deviceList)) {\n            throw new Error(\"Unexpected response format from device list\");\n        }\n\n        // 2. Build an array of promises for parallel execution\n        const tasks = deviceList.map(async dev => {\n            const deviceID = dev.deviceID || dev.id || dev.deviceId;\n            if (!deviceID) return null;\n\n            try {\n                const lastLoc = await getLastLocation(deviceID);\n                return {\n                    deviceID,\n                    deviceInfo: dev,\n                    lastLocation: lastLoc\n                };\n            } catch (err) {\n                // Safe fallback when individual device lookup fails\n                return {\n                    deviceID,\n                    deviceInfo: dev,\n                    error: err.toString()\n                };\n            }\n        });\n\n        // 3. Wait for all device lookups\n        const results = (await Promise.all(tasks)).filter(v => v !== null);\n\n        // 4. Return combined results\n        msg.payload = results;\n        return msg;\n\n    } catch (err) {\n        msg.payload = { error: err.toString() };\n        return msg;\n    }\n}\n\nreturn main();\n",
+        "outputs": 1,
+        "timeout": "",
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [
+            {
+                "var": "fetch",
+                "module": "node-fetch"
+            }
+        ],
+        "x": 330,
+        "y": 320,
+        "wires": [
+            [
+                "154f355b1655996e"
+            ]
+        ]
+    },
+    {
+        "id": "6def2e93b726de43",
+        "type": "tls-config",
+        "name": "Americaloc",
+        "cert": "",
+        "key": "",
+        "ca": "",
+        "certname": "",
+        "keyname": "",
+        "caname": "",
+        "servername": "",
+        "verifyservercert": false,
+        "alpnprotocol": ""
+    },
+    {
+        "id": "906d2aaebee31cbf",
+        "type": "global-config",
+        "env": [],
+        "modules": {
+            "node-red-contrib-tak": "4.2.0"
+        }
+    }
+]
